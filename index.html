@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vulnerability Assessment Report Generator - Auto</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #333;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+header { text-align: center; color: white; margin-bottom: 30px; }
+header h1 { font-size: 2.2rem; margin-bottom: 10px; }
+header p { opacity: 0.9; }
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.card h2 {
+  color: #1e3c72;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 5px;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #2a5298;
+  box-shadow: 0 0 0 2px rgba(42,82,152,0.2);
+}
+textarea { resize: vertical; font-family: 'Courier New', monospace; }
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  margin-right: 10px;
+}
+.btn-primary { background: #2a5298; color: white; }
+.btn-primary:hover { background: #1e3c72; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #495057; }
+.btn-success { background: #28a745; color: white; }
+.btn-success:hover { background: #1e7e34; }
+.btn-danger { background: #dc3545; color: white; }
+.btn-danger:hover { background: #b02a37; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.status {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  display: none;
+  white-space: pre-line;
+}
+.status.success { background: #d4edda; color: #155724; display: block; }
+.status.error { background: #f8d7da; color: #721c24; display: block; }
+.status.loading { background: #fff3cd; color: #856404; display: block; }
+.findings-list .empty { color: #999; font-style: italic; }
+.finding-item {
+  padding: 12px;
+  border-left: 4px solid #2a5298;
+  background: #f8f9fa;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.finding-item.Critical { border-color: #dc3545; }
+.finding-item.High { border-color: #fd7e14; }
+.finding-item.Medium { border-color: #ffc107; }
+.finding-item.Low { border-color: #0dcaf0; }
+.finding-item.Informational { border-color: #6c757d; }
+.severity-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: white;
+  margin-right: 8px;
+}
+.severity-badge.Critical { background: #dc3545; }
+.severity-badge.High { background: #fd7e14; }
+.severity-badge.Medium { background: #ffc107; color: #333; }
+.severity-badge.Low { background: #0dcaf0; color: #333; }
+.severity-badge.Informational { background: #6c757d; }
+.remove-btn {
+  background: #dc3545; color: white;
+  padding: 5px 10px; font-size: 0.85rem;
+  margin: 0; border: none; border-radius: 4px;
+  cursor: pointer;
+}
+.output {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 20px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  margin-top: 15px;
+}
+.progress {
+  margin-top: 10px;
+  display: none;
+}
+.progress-bar {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #2a5298;
+  width: 0%;
+  transition: width 0.3s;
+}
+footer {
+  text-align: center;
+  color: white;
+  opacity: 0.8;
+  padding: 20px;
+  font-size: 0.9rem;
+}
+.big-btn {
+  font-size: 1.1rem;
+  padding: 14px 28px;
+  width: 100%;
+  margin-top: 5px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🛡️ Auto Vulnerability Assessment Generator</h1>
+    <p>Enter a domain → One click auto-fills everything → Add findings → Export report.</p>
+  </header>
+
+  <section class="card">
+    <h2>🚀 Quick Start</h2>
+    <div class="grid">
+      <label>Target Domain *
+        <input type="text" id="domain" placeholder="example.com"/>
+      </label>
+    </div>
+    <button id="autoFetchBtn" class="btn-success big-btn">⚡ AUTO-FILL EVERYTHING</button>
+    <div id="fetchStatus" class="status"></div>
+    <div id="progress" class="progress">
+      <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>1. Assessment Information</h2>
+    <div class="grid">
+      <label>Pentester IP (Your Public IP)
+        <input type="text" id="pentesterIP" placeholder="Auto-detected"/>
+      </label>
+      <label>Start Date
+        <input type="date" id="startDate"/>
+      </label>
+      <label>End Date
+        <input type="date" id="endDate"/>
+      </label>
+      <label>Authentication Type
+        <select id="authType">
+          <option value="N/A">N/A</option>
+          <option value="Application Login">Application Login</option>
+          <option value="Basic Auth">Basic Auth</option>
+          <option value="OAuth/SSO">OAuth/SSO</option>
+          <option value="API Key">API Key</option>
+        </select>
+      </label>
+      <label>Location
+        <input type="text" id="location" placeholder="Auto-detected"/>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Domain Intelligence</h2>
+    <div class="grid">
+      <label>Resolved IPs
+        <input type="text" id="ips" placeholder="Auto-detected"/>
+      </label>
+      <label>Domain Registrar
+        <input type="text" id="registrar" placeholder="Auto-detected"/>
+      </label>
+      <label>Hosting Provider
+        <input type="text" id="hosting" placeholder="Auto-detected"/>
+      </label>
+      <label>Technologies Identified
+        <input type="text" id="tech" placeholder="Auto-detected"/>
+      </label>
+    </div>
+    <label>DNS Information (dig output)
+      <textarea id="dns" rows="4"></textarea>
+    </label>
+    <label>Port Status (scan results)
+      <textarea id="ports" rows="5"></textarea>
+    </label>
+    <label>Notes (Optional)
+      <textarea id="notes" rows="2"></textarea>
+    </label>
+    <label>Compromised Data
+      <input type="text" id="compromised" placeholder="N/A"/>
+    </label>
+  </section>
+
+  <section class="card">
+    <h2>3. Add Findings</h2>
+    <div class="grid">
+      <label>Severity *
+        <select id="severity">
+          <option value="Critical">🔴 Critical</option>
+          <option value="High">🟠 High</option>
+          <option value="Medium">🟡 Medium</option>
+          <option value="Low">🔵 Low</option>
+          <option value="Informational">⚪ Informational</option>
+        </select>
+      </label>
+      <label>Title *
+        <input type="text" id="findingTitle" placeholder="SQL Injection in login form"/>
+      </label>
+    </div>
+    <label>Description<textarea id="findingDesc" rows="3"></textarea></label>
+    <label>Impacted Endpoints<textarea id="findingEndpoints" rows="2"></textarea></label>
+    <label>Evidences<textarea id="findingEvidence" rows="3"></textarea></label>
+    <label>Remediation<textarea id="findingRemediation" rows="2"></textarea></label>
+    <button id="addFindingBtn" class="btn-primary">➕ Add Finding</button>
+  </section>
+
+  <section class="card">
+    <h2>4. Findings List</h2>
+    <div id="findingsList" class="findings-list">
+      <p class="empty">No findings added yet.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>5. Generate Report</h2>
+    <div class="btn-group">
+      <button id="generateBtn" class="btn-primary">📄 Generate Report</button>
+      <button id="downloadBtn" class="btn-secondary" disabled>⬇️ Download .md</button>
+      <button id="copyBtn" class="btn-secondary" disabled>📋 Copy Markdown</button>
+      <button id="clearBtn" class="btn-danger">🗑️ Clear All</button>
+    </div>
+    <pre id="output" class="output"></pre>
+  </section>
+
+  <footer>
+    <p>⚠️ Browser-based recon relies on public APIs. For deep port scans, use nmap locally and paste results.</p>
+  </footer>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var findings = [];
+  var counters = { Critical: 0, High: 0, Medium: 0, Low: 0, Informational: 0 };
+  var generatedMD = '';
+  var generatedDomain = '';
+
+  function $(id) { return document.getElementById(id); }
+
+  function escapeHTML(str) {
+    return String(str).replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function setProgress(pct) {
+    $('progress').style.display = 'block';
+    $('progressFill').style.width = pct + '%';
+  }
+
+  function setStatus(msg, type) {
+    var s = $('fetchStatus');
+    s.className = 'status ' + type;
+    s.textContent = msg;
+  }
+
+  // =========== AUTO FETCH FUNCTIONS ============
+
+  // 1. Get pentester's public IP
+  function fetchPentesterIP() {
+    return fetch('https://api.ipify.org?format=json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        $('pentesterIP').value = d.ip;
+        return d.ip;
+      }).catch(function(){
+        // Fallback
+        return fetch('https://ipwho.is/')
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            $('pentesterIP').value = d.ip;
+            return d.ip;
+          });
+      });
+  }
+
+  // 2. DNS resolution
+  function fetchDNS(domain) {
+    var records = ['A', 'AAAA', 'MX', 'NS', 'TXT'];
+    var allAnswers = [];
+    var primaryIPs = [];
+
+    var promises = records.map(function(type) {
+      return fetch('https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=' + type)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+          if (data.Answer) {
+            data.Answer.forEach(function(a) {
+              var typeName = { 1:'A', 28:'AAAA', 15:'MX', 2:'NS', 16:'TXT', 5:'CNAME' }[a.type] || a.type;
+              allAnswers.push({ name: a.name, ttl: a.TTL, type: typeName, data: a.data });
+              if (a.type === 1) primaryIPs.push(a.data);
+            });
+          }
+        }).catch(function(){});
+    });
+
+    return Promise.all(promises).then(function() {
+      $('ips').value = primaryIPs.join(', ') || 'N/A';
+      var digOut = ';; ANSWER SECTION:\n';
+      allAnswers.forEach(function(a) {
+        digOut += a.name + '  ' + a.ttl + '  IN  ' + a.type + '  ' + a.data + '\n';
+      });
+      $('dns').value = digOut || 'No records found';
+      return primaryIPs[0];
+    });
+  }
+
+  // 3. WHOIS / Registrar via RDAP
+  function fetchRegistrar(domain) {
+    return fetch('https://rdap.org/domain/' + encodeURIComponent(domain))
+      .then(function(r){
+        if (!r.ok) throw new Error('RDAP failed');
+        return r.json();
+      })
+      .then(function(data) {
+        var registrar = 'N/A';
+        if (data.entities) {
+          data.entities.forEach(function(e) {
+            if (e.roles && e.roles.indexOf('registrar') !== -1) {
+              if (e.vcardArray && e.vcardArray[1]) {
+                e.vcardArray[1].forEach(function(v) {
+                  if (v[0] === 'fn') registrar = v[3];
+                });
+              }
+            }
+          });
+        }
+        $('registrar').value = registrar;
+      }).catch(function() {
+        $('registrar').value = 'Unable to fetch (manual lookup required)';
+      });
+  }
+
+  // 4. Hosting provider + Location via IP geolocation
+  function fetchHosting(ip) {
+    if (!ip) return Promise.resolve();
+    return fetch('https://ipwho.is/' + ip)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          $('hosting').value = (data.connection && data.connection.isp) ? data.connection.isp : (data.connection.org || 'N/A');
+          $('location').value = (data.country || '') + (data.city ? ', ' + data.city : '');
+        } else {
+          $('hosting').value = 'N/A';
+        }
+      }).catch(function() {
+        // Fallback
+        return fetch('https://ipapi.co/' + ip + '/json/')
+          .then(function(r){ return r.json(); })
+          .then(function(data) {
+            $('hosting').value = data.org || 'N/A';
+            $('location').value = (data.country_name || '') + (data.city ? ', ' + data.city : '');
+          }).catch(function(){
+            $('hosting').value = 'N/A';
+          });
+      });
+  }
+
+  // 5. Technologies detection via HTTP headers (using allorigins proxy)
+  function fetchTech(domain) {
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://' + domain);
+    return fetch(proxyUrl)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        var tech = [];
+        var html = data.contents || '';
+        var status = data.status || {};
+        var headers = status.response_headers || {};
+
+        // Detect from headers
+        if (headers.server) tech.push(headers.server);
+        if (headers['x-powered-by']) tech.push(headers['x-powered-by']);
+        if (headers['x-generator']) tech.push(headers['x-generator']);
+
+        // Detect from HTML
+        var detections = [
+          { re: /wp-content|wp-includes/i, name: 'WordPress' },
+          { re: /\/sites\/default\/files/i, name: 'Drupal' },
+          { re: /cdn\.shopify\.com/i, name: 'Shopify' },
+          { re: /wix\.com/i, name: 'Wix' },
+          { re: /squarespace/i, name: 'Squarespace' },
+          { re: /joomla/i, name: 'Joomla' },
+          { re: /\/_next\//i, name: 'Next.js' },
+          { re: /\/_nuxt\//i, name: 'Nuxt.js' },
+          { re: /react/i, name: 'React' },
+          { re: /vue/i, name: 'Vue.js' },
+          { re: /angular/i, name: 'Angular' },
+          { re: /jquery[.-]([\d.]+)/i, name: 'jQuery' },
+          { re: /bootstrap[.-]([\d.]+)/i, name: 'Bootstrap' },
+          { re: /cloudflare/i, name: 'Cloudflare' },
+          { re: /google-analytics|gtag/i, name: 'Google Analytics' },
+          { re: /php/i, name: 'PHP (detected)' }
+        ];
+        detections.forEach(function(d) {
+          if (d.re.test(html) && tech.indexOf(d.name) === -1) tech.push(d.name);
+        });
+
+        // Generator meta tag
+        var genMatch = html.match(/<meta\s+name=["']generator["']\s+content=["']([^"']+)["']/i);
+        if (genMatch) tech.push(genMatch[1]);
+
+        $('tech').value = tech.length ? tech.join(', ') : 'Manual inspection required';
+      }).catch(function() {
+        $('tech').value = 'Unable to fetch (CORS restriction)';
+      });
+  }
+
+  // 6. Browser-based "port scan" — probe HTTP/HTTPS and common web ports
+  function portScan(domain) {
+    var ports = [
+      { port: 80, protocol: 'http', service: 'http' },
+      { port: 443, protocol: 'https', service: 'https' },
+      { port: 8080, protocol: 'http', service: 'http-proxy' },
+      { port: 8443, protocol: 'https', service: 'https-alt' },
+      { port: 8000, protocol: 'http', service: 'http-alt' },
+      { port: 3000, protocol: 'http', service: 'node/dev' },
+      { port: 5000, protocol: 'http', service: 'flask/dev' }
+    ];
+
+    var results = [];
+
+    var promises = ports.map(function(p) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        var timeout = setTimeout(function() {
+          img.src = '';
+          results.push({ port: p.port, state: 'filtered', service: p.service });
+          resolve();
+        }, 3000);
+
+        img.onload = img.onerror = function() {
+          clearTimeout(timeout);
+          // onerror fires if connection succeeds but not an image
+          // Use fetch with no-cors as secondary check
+          fetch(p.protocol + '://' + domain + ':' + p.port, { mode: 'no-cors', signal: AbortSignal.timeout ? AbortSignal.timeout(2000) : undefined })
+            .then(function() {
+              results.push({ port: p.port, state: 'open', service: p.service });
+              resolve();
+            })
+            .catch(function(e) {
+              // If error is CORS/network type — often port IS open
+              if (e.name === 'TypeError') {
+                results.push({ port: p.port, state: 'open', service: p.service });
+              } else {
+                results.push({ port: p.port, state: 'closed', service: p.service });
+              }
+              resolve();
+            });
+        };
+        img.src = p.protocol + '://' + domain + ':' + p.port + '/favicon.ico?' + Date.now();
+      });
+    });
+
+    return Promise.all(promises).then(function() {
+      results.sort(function(a,b){ return a.port - b.port; });
+      var out = 'PORT      STATE     SERVICE\n';
+      results.forEach(function(r) {
+        var portStr = (r.port + '/tcp').padEnd(10);
+        var stateStr = r.state.padEnd(10);
+        out += portStr + stateStr + r.service + '\n';
+      });
+      out += '\nNote: Browser-based scan limited to web ports.\nFor full scan, run: nmap -sV -p- ' + domain;
+      $('ports').value = out;
+    });
+  }
+
+  // =========== MAIN ORCHESTRATION ============
+  $('autoFetchBtn').addEventListener('click', function() {
+    var domain = $('domain').value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!domain) {
+      setStatus('❌ Please enter a domain first.', 'error');
+      return;
+    }
+    $('domain').value = domain;
+
+    // Default dates
+    var today = new Date().toISOString().split('T')[0];
+    if (!$('startDate').value) $('startDate').value = today;
+    if (!$('endDate').value) $('endDate').value = today;
+
+    $('autoFetchBtn').disabled = true;
+    setProgress(0);
+    setStatus('⏳ Starting reconnaissance...', 'loading');
+
+    var steps = [
+      { name: 'Detecting your public IP', fn: fetchPentesterIP },
+      { name: 'Resolving DNS records', fn: function(){ return fetchDNS(domain); } },
+      { name: 'Looking up registrar (WHOIS)', fn: function(){ return fetchRegistrar(domain); } },
+      { name: 'Identifying hosting provider', fn: function(){
+        var ip = $('ips').value.split(',')[0].trim();
+        return fetchHosting(ip);
+      }},
+      { name: 'Fingerprinting technologies', fn: function(){ return fetchTech(domain); } },
+      { name: 'Scanning common web ports', fn: function(){ return portScan(domain); } }
+    ];
+
+    var i = 0;
+    function runNext() {
+      if (i >= steps.length) {
+        setProgress(100);
+        setStatus('✅ Auto-fill complete! Review fields and add findings.', 'success');
+        $('autoFetchBtn').disabled = false;
+        setTimeout(function(){ $('progress').style.display = 'none'; }, 1500);
+        return;
+      }
+      setStatus('⏳ [' + (i+1) + '/' + steps.length + '] ' + steps[i].name + '...', 'loading');
+      steps[i].fn().then(function() {
+        i++;
+        setProgress(Math.round((i / steps.length) * 100));
+        runNext();
+      }).catch(function(err){
+        console.error(steps[i].name, err);
+        i++;
+        setProgress(Math.round((i / steps.length) * 100));
+        runNext();
+      });
+    }
+    runNext();
+  });
+
+  // =========== FINDINGS LOGIC ============
+  function renderFindings() {
+    var list = $('findingsList');
+    if (findings.length === 0) {
+      list.innerHTML = '<p class="empty">No findings added yet.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    findings.forEach(function(f, i) {
+      var div = document.createElement('div');
+      div.className = 'finding-item ' + f.severity;
+      div.innerHTML =
+        '<div>' +
+          '<span class="severity-badge ' + f.severity + '">' + f.severity + '</span>' +
+          '<strong>' + f.id + '</strong> — ' + escapeHTML(f.title) +
+        '</div>';
+      var btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.textContent = 'Remove';
+      btn.addEventListener('click', function() { removeFinding(i); });
+      div.appendChild(btn);
+      list.appendChild(div);
+    });
+  }
+
+  function removeFinding(index) {
+    findings.splice(index, 1);
+    counters = { Critical: 0, High: 0, Medium: 0, Low: 0, Informational: 0 };
+    findings.forEach(function(f) {
+      counters[f.severity]++;
+      f.id = '#' + f.severity.charAt(0) + '-' + String(counters[f.severity]).padStart(2, '0');
+    });
+    renderFindings();
+  }
+
+  $('addFindingBtn').addEventListener('click', function() {
+    var severity = $('severity').value;
+    var title = $('findingTitle').value.trim();
+    if (!title) { alert('Please enter a finding title.'); return; }
+
+    counters[severity]++;
+    var id = '#' + severity.charAt(0) + '-' + String(counters[severity]).padStart(2, '0');
+
+    findings.push({
+      id: id, severity: severity, title: title,
+      description: $('findingDesc').value.trim(),
+      endpoints: $('findingEndpoints').value.trim(),
+      evidence: $('findingEvidence').value.trim(),
+      remediation: $('findingRemediation').value.trim()
+    });
+
+    renderFindings();
+    $('findingTitle').value = '';
+    $('findingDesc').value = '';
+    $('findingEndpoints').value = '';
+    $('findingEvidence').value = '';
+    $('findingRemediation').value = '';
+  });
+
+  // =========== REPORT GENERATION ============
+  $('generateBtn').addEventListener('click', function() {
+    var domain = $('domain').value.trim() || 'N/A';
+    var ip = $('pentesterIP').value.trim() || 'N/A';
+    var sd = $('startDate').value || 'N/A';
+    var ed = $('endDate').value || 'N/A';
+    var auth = $('authType').value;
+    var loc = $('location').value.trim() || 'N/A';
+    var ips = $('ips').value.trim() || 'N/A';
+    var reg = $('registrar').value.trim() || 'N/A';
+    var host = $('hosting').value.trim() || 'N/A';
+    var tech = $('tech').value.trim() || 'N/A';
+    var dns = $('dns').value.trim() || 'N/A';
+    var ports = $('ports').value.trim() || 'N/A';
+    var notes = $('notes').value.trim() || 'N/A';
+    var compromised = $('compromised').value.trim() || 'N/A';
+
+    var counts = { Critical: 0, High: 0, Medium: 0, Low: 0, Informational: 0 };
+    findings.forEach(function(f) { counts[f.severity]++; });
+    var total = findings.length;
+    var order = ['Critical', 'High', 'Medium', 'Low', 'Informational'];
+    var maxSev = 'N/A';
+    for (var i = 0; i < order.length; i++) {
+      if (counts[order[i]] > 0) { maxSev = order[i]; break; }
+    }
+
+    var md = '# Vulnerability Assessment Report\n\n' +
+      '## Assessment Information\n' +
+      '**IP used:** ' + ip + '\n' +
+      '**Activities Timeframe:** ' + sd + ' to ' + ed + '\n\n' +
+      '## Webservers Homepage\n_Screenshots to be attached manually_\n\n' +
+      '#### Notes\n' + notes + '\n\n' +
+      '## Target Overview\n' +
+      '**Authentication:** ' + auth + '\n' +
+      '**Target Domain:** ' + domain + '\n' +
+      '**IPs:** ' + ips + '\n' +
+      '**Domain Registrar:** ' + reg + '\n' +
+      '**Hosting Provider:** ' + host + '\n' +
+      '**Location:** ' + loc + '\n\n' +
+      '**DNS Information**\n```bash\n' + dns + '\n```\n\n' +
+      '**Ports Status**\n```bash\n' + ports + '\n```\n\n' +
+      '**Technologies Identified**\n' + tech + '\n\n' +
+      '## Summary of Findings\n' +
+      '**Compromised Data (Quantity and Type):**\n' + compromised + '\n\n' +
+      '**Overall Criticality Level:** ' + maxSev + '\n' +
+      '**Total Vulnerabilities:** ' + total + '\n' +
+      '**Critical:** ' + (counts.Critical || 'N/A') + '\n' +
+      '**High:** ' + (counts.High || 'N/A') + '\n' +
+      '**Medium:** ' + (counts.Medium || 'N/A') + '\n' +
+      '**Low:** ' + (counts.Low || 'N/A') + '\n' +
+      '**Informational:** ' + (counts.Informational || 'N/A') + '\n\n' +
+      '### Detailed Findings\n';
+
+    var sorted = findings.slice().sort(function(a, b) {
+      return order.indexOf(a.severity) - order.indexOf(b.severity);
+    });
+
+    sorted.forEach(function(f) {
+      md += '\n##### ' + f.id + '  ' + f.title + '\n' +
+        '**Description**\n' + (f.description || 'N/A') + '\n\n' +
+        '**Impacted Endpoints**\n' + (f.endpoints || 'N/A') + '\n\n' +
+        '**Evidences**\n' + (f.evidence || 'N/A') + '\n\n' +
+        '**Remediation**\n' + (f.remediation || 'N/A') + '\n';
+    });
+
+    $('output').textContent = md;
+    $('downloadBtn').disabled = false;
+    $('copyBtn').disabled = false;
+    generatedMD = md;
+    generatedDomain = domain;
+  });
+
+  $('downloadBtn').addEventListener('click', function() {
+    var blob = new Blob([generatedMD], { type: 'text/markdown' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'VA_Report_' + generatedDomain + '_' + new Date().toISOString().split('T')[0] + '.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  $('copyBtn').addEventListener('click', function() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(generatedMD).then(function() {
+        alert('✅ Markdown copied to clipboard!');
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = generatedMD;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('✅ Copied!');
+    }
+  });
+
+  $('clearBtn').addEventListener('click', function() {
+    if (!confirm('Clear all data?')) return;
+    var inputs = document.querySelectorAll('input, textarea');
+    for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
+    $('authType').value = 'N/A';
+    $('severity').value = 'Critical';
+    findings = [];
+    counters = { Critical: 0, High: 0, Medium: 0, Low: 0, Informational: 0 };
+    renderFindings();
+    $('output').textContent = '';
+    $('fetchStatus').className = 'status';
+    $('fetchStatus').textContent = '';
+    $('progress').style.display = 'none';
+  });
+
+  // Polyfills
+  if (!String.prototype.padStart) {
+    String.prototype.padStart = function(n, s) {
+      s = s || ' '; var str = String(this);
+      while (str.length < n) str = s + str;
+      return str;
+    };
+  }
+  if (!String.prototype.padEnd) {
+    String.prototype.padEnd = function(n, s) {
+      s = s || ' '; var str = String(this);
+      while (str.length < n) str = str + s;
+      return str;
+    };
+  }
+})();
+</script>
+</body>
+</html>
