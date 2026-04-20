@@ -654,7 +654,6 @@ footer {
         var stateStr = r.state.padEnd(10);
         out += portStr + stateStr + r.service + '\n';
       });
-      out += '\nNote: Browser-based scan limited to web ports.\nFor full scan, run: nmap -sV -p- ' + domain;
       $('ports').value = out;
     });
   }
@@ -813,7 +812,7 @@ footer {
       '**Location:** ' + loc + '\n\n' +
       '**DNS Information**\n```bash\n' + dns + '\n```\n\n' +
       '**Ports Status**\n```bash\n' + ports + '\n```\n\n' +
-      '**Technologies Identified**\n' + tech + '\n\n' +
+      '**Technologies Identified**\n' + (tech === 'N/A' ? 'N/A' : tech.split(',').map(function(t){ return '- ' + t.trim(); }).filter(function(t){ return t !== '- '; }).join('\n')) + '\n\n' +
       '## Summary of Findings\n' +
       '**Compromised Data (Quantity and Type):**\n' + compromised + '\n\n' +
       '**Overall Criticality Level:** ' + maxSev + '\n' +
@@ -830,7 +829,7 @@ footer {
     });
 
     sorted.forEach(function(f) {
-      md += '\n##### ' + f.id + '  ' + f.title + '\n' +
+      md += '\n##### ' + f.id + ' ' + f.title + '\n' +
         '**Description**\n' + (f.description || 'N/A') + '\n\n' +
         '**Impacted Endpoints**\n' + (f.endpoints || 'N/A') + '\n\n' +
         '**Evidences**\n' + (f.evidence || 'N/A') + '\n\n' +
